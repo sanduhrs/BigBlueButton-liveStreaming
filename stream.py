@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys, argparse, time, subprocess, shlex, logging, os
+import sys, argparse, time, subprocess, shlex, logging, os, signal
 
 from bigbluebutton_api_python import BigBlueButton, exception
 from bigbluebutton_api_python import util as bbbUtil 
@@ -13,6 +13,37 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
 from datetime import datetime
+
+def receiveSignal(signalNumber, frame):
+    logging.info("Received: ".format(signalNumber))
+    return
+
+def receiveSignalTop(signalNumber, frame):
+    logging.info("Received: ".format(signalNumber))
+    browser.execute_script("document.querySelector('.react-draggable').style.transform = 'translate(0px,-400px)'")
+    return
+
+def receiveSignalBottom(signalNumber, frame):
+    logging.info("Received: ".format(signalNumber))
+    browser.execute_script("document.querySelector('.react-draggable').style.transform = 'translate(0px,400px)'")
+    return
+
+# register the signals to be caught
+signal.signal(signal.SIGHUP, receiveSignal)
+signal.signal(signal.SIGINT, receiveSignal)
+signal.signal(signal.SIGQUIT, receiveSignal)
+signal.signal(signal.SIGILL, receiveSignal)
+signal.signal(signal.SIGTRAP, receiveSignal)
+signal.signal(signal.SIGABRT, receiveSignal)
+signal.signal(signal.SIGBUS, receiveSignal)
+signal.signal(signal.SIGFPE, receiveSignal)
+#signal.signal(signal.SIGKILL, receiveSignal)
+signal.signal(signal.SIGUSR1, receiveSignalTop)
+signal.signal(signal.SIGSEGV, receiveSignal)
+signal.signal(signal.SIGUSR2, receiveSignalBottom)
+signal.signal(signal.SIGPIPE, receiveSignal)
+signal.signal(signal.SIGALRM, receiveSignal)
+signal.signal(signal.SIGTERM, receiveSignal)
 
 downloadProcess = None
 browser = None
@@ -57,6 +88,7 @@ def set_up():
     options.add_argument('--start-fullscreen') 
     
     logging.info('Starting browser!!')
+    logging.info("My PID is: {0}".format(os.getpid()));
 
     browser = webdriver.Chrome(executable_path='./chromedriver',options=options)
 
@@ -80,7 +112,7 @@ def bbb_browser():
 
     element = EC.invisibility_of_element((By.CSS_SELECTOR, '.ReactModal__Overlay'))
     WebDriverWait(browser, selelnium_timeout).until(element)
-    browser.find_element_by_id('message-input').send_keys("This meeting is streamed to: %s" % args.target.partition('//')[2].partition('/')[0])
+    browser.find_element_by_id('message-input').send_keys("The Splash Awards Germany & Austria sponsored by Acquia is streamed live to https://drupal.org and https://www.youtube.com/c/DrupalEurope")
     browser.find_elements_by_css_selector('[aria-label="Send message"]')[0].click()
     
     if args.chat:
@@ -92,6 +124,11 @@ def bbb_browser():
     browser.execute_script("document.querySelector('[aria-label=\"Users and messages toggle\"]').style.display='none';")
     browser.execute_script("document.querySelector('[aria-label=\"Options\"]').style.display='none';")
     browser.execute_script("document.querySelector('[aria-label=\"Actions bar\"]').style.display='none';")
+    browser.execute_script("document.getElementById('container').setAttribute('style','margin:100px');")
+    browser.execute_script("document.getElementById('container').firstChild.setAttribute('style','height:500px !important');")
+    browser.execute_script("document.getElementById('container').setAttribute('style','padding-top:200px !important');")
+    if(len(browser.find_elements_by_css_selector('.react-draggable'))>0):
+        browser.execute_script("document.querySelector('.react-draggable').style.transform = 'translate(0px,400px)'")
     browser.execute_script("document.getElementById('container').setAttribute('style','margin-bottom:30px');")
 
 def create_meeting():
